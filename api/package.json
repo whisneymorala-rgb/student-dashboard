@@ -1,0 +1,7 @@
+{
+  "name": "student-completion-dashboard",
+  "version": "1.0.0",
+  "description": "Real-time student completion dashboard with Airtable integration",
+  "author": "Whis",
+  "private": true
+}
