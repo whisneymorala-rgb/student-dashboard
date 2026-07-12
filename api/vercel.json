@@ -1,4 +1,10 @@
 {
   "buildCommand": "echo 'Built'",
-  "outputDirectory": "public"
+  "public": true,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
