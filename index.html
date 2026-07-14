@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Completion Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --surface-1: #fcfcfb;
+      --page: #f5f5f5;
+      --text-primary: #0b0b0b;
+      --text-secondary: #52514e;
+      --text-muted: #898781;
+      --border: #e0e0e0;
+      --hairline: #f0f0f0;
+      --accent: #2a78d6;
+      --accent-ink: #ffffff;
+      /* Status palette is fixed — same hex in light and dark, never themed. */
+      --good: #0ca30c;
+      --warning: #fab219;
+      --serious: #ec835a;
+      --critical: #d03b3b;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --surface-1: #242423;
+        --page: #1a1a19;
+        --text-primary: #ffffff;
+        --text-secondary: #c3c2b7;
+        --text-muted: #898781;
+        --border: #444;
+        --hairline: #333;
+        --accent: #3987e5;
+      }
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--page); color: var(--text-primary); }
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    .header { margin-bottom: 2rem; }
+    .header h1 { font-size: 28px; font-weight: 600; margin: 0; }
+    .filter-bar { background: var(--surface-1); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 2rem; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .filter-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-right: 8px; }
+    .filter-btn { padding: 8px 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-1); color: var(--text-primary); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+    .filter-btn:hover { border-color: var(--accent); }
+    .filter-btn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 2rem; }
+    .kpi-card { background: var(--surface-1); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border); }
+    .kpi-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
+    .kpi-value { font-size: 36px; font-weight: 600; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+    .kpi-sub { font-size: 12px; color: var(--text-muted); }
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+    @media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
+    .chart-card { background: var(--surface-1); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border); }
+    .chart-title { font-size: 16px; font-weight: 600; margin-bottom: 1rem; }
+    .chart-container { position: relative; height: 280px; }
+    .email-list { list-style: none; }
+    .email-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--hairline); font-size: 13px; }
+    .email-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .email-type { color: var(--text-secondary); text-transform: capitalize; flex: 1; }
+    .email-count { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .loading { text-align: center; padding: 2rem; color: var(--text-secondary); }
+    .error { padding: 2rem; background: #fee; border-radius: 8px; color: #c33; border: 1px solid #fcc; }
+    .footer { text-align: center; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 2rem; }
+
+    .table-card { background: var(--surface-1); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 2rem; }
+    .table-toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+    .search-input { flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--page); color: var(--text-primary); font-size: 13px; }
+    .status-select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--page); color: var(--text-primary); font-size: 13px; }
+    .table-count { font-size: 12px; color: var(--text-muted); margin-bottom: 1rem; }
+    table.students-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .students-table th { text-align: left; padding: 8px 12px; color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--border); }
+    .students-table td { padding: 10px 12px; border-bottom: 1px solid var(--hairline); vertical-align: middle; }
+    .students-table tbody tr:hover { background: var(--page); }
+    .student-name { font-weight: 500; }
+    .progress-cell { display: flex; align-items: center; gap: 8px; }
+    .progress-track { flex: 1; height: 6px; border-radius: 3px; background: var(--hairline); min-width: 60px; }
+    .progress-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+    .progress-value { font-variant-numeric: tabular-nums; color: var(--text-secondary); font-size: 12px; min-width: 34px; text-align: right; }
+    .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .status-badge.good { color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent); }
+    .status-badge.warning { color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, transparent); }
+    .status-badge.serious { color: var(--serious); background: color-mix(in srgb, var(--serious) 16%, transparent); }
+    .status-badge.critical { color: var(--critical); background: color-mix(in srgb, var(--critical) 14%, transparent); }
+    .status-badge.muted { color: var(--text-secondary); background: var(--page); }
+    .empty-row { text-align: center; color: var(--text-muted); padding: 2rem !important; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // Sequential blue ramp, light -> dark, one hue per ordinal bucket.
+    const PROGRESS_RAMP = ['#86b6ef', '#5598e7', '#2a78d6', '#1c5cab', '#104281'];
+    // Fixed-order categorical palette for email types.
+    const CATEGORICAL = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
+
+    function getField(fields, keys, fallback) {
+      for (const key of keys) {
+        if (fields[key] !== undefined && fields[key] !== null && fields[key] !== '') return fields[key];
+      }
+      return fallback;
+    }
+
+    function statusMeta(rawStatus) {
+      const s = String(rawStatus || '').toLowerCase();
+      if (s.includes('complet')) return { label: 'Completed', tone: 'good', icon: '✓' };
+      if (s.includes('risk')) return { label: 'At risk', tone: 'critical', icon: '✕' };
+      if (s.includes('drop') || s.includes('inactive') || s.includes('cancel')) return { label: 'Inactive', tone: 'critical', icon: '✕' };
+      if (s.includes('progress') || s.includes('active')) return { label: 'In progress', tone: 'warning', icon: '●' };
+      if (s.includes('not_start') || s.includes('not started') || s.includes('pending')) return { label: 'Not started', tone: 'muted', icon: '○' };
+      return { label: rawStatus || 'Unknown', tone: 'muted', icon: '○' };
+    }
+
+    function formatDate(value) {
+      if (!value) return '—';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString();
+    }
+
+    function Dashboard() {
+      const [students, setStudents] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [dateRange, setDateRange] = useState('all');
+      const [search, setSearch] = useState('');
+      const [statusFilter, setStatusFilter] = useState('all');
+      const chartRef = useRef(null);
+      const chartInstance = useRef(null);
+
+      const calculateDateRange = (rangeType) => {
+        const now = new Date();
+        let start;
+        const end = now;
+        switch (rangeType) {
+          case '7d':
+            start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case '30d':
+            start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+          case '90d':
+            start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+            break;
+          default:
+            start = new Date(0);
+        }
+        return { start, end };
+      };
+
+      const fetchStudents = async () => {
+        try {
+          setLoading(true);
+          const response = await fetch('/api/students');
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to fetch data');
+          const records = data.records || [];
+          const mapped = records.map((r) => {
+            const fields = r.fields || {};
+            return {
+              id: r.id,
+              name: getField(fields, ['name', 'Name', 'student_name', 'Student Name', 'full_name', 'Student'], 'Unnamed student'),
+              status: getField(fields, ['status', 'Status'], 'unknown'),
+              percent_complete: Number(getField(fields, ['percent_complete', 'Percent Complete'], 0)) || 0,
+              enrollment_date: getField(fields, ['enrollment_date', 'Enrollment Date'], null),
+              last_email_type: getField(fields, ['last_email_type', 'Last Email Type'], 'none'),
+              last_email_date: getField(fields, ['last_email_date', 'Last Email Date'], null),
+            };
+          });
+          setStudents(mapped);
+          setError(null);
+        } catch (err) {
+          setError(err.message || 'Failed to load data');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => { fetchStudents(); }, []);
+
+      const metrics = useMemo(() => {
+        const { start, end } = calculateDateRange(dateRange);
+        const filteredByDate = students.filter((s) => s.last_email_date && new Date(s.last_email_date) >= start && new Date(s.last_email_date) <= end);
+        const completed = students.filter((s) => statusMeta(s.status).tone === 'good');
+        const completionRate = students.length > 0 ? Math.round((completed.length / students.length) * 100) : 0;
+        const atRiskCount = students.filter((s) => {
+          if (statusMeta(s.status).tone === 'good') return false;
+          if (s.last_email_date) {
+            const daysSince = Math.floor((new Date() - new Date(s.last_email_date)) / (1000 * 60 * 60 * 24));
+            return daysSince >= 7;
+          }
+          return false;
+        }).length;
+        const emailsByType = {};
+        filteredByDate.forEach((s) => {
+          const type = s.last_email_type || 'none';
+          emailsByType[type] = (emailsByType[type] || 0) + 1;
+        });
+        const totalEmailsSent = Object.values(emailsByType).reduce((a, b) => a + b, 0);
+        const progressBuckets = {
+          '0-25%': students.filter((s) => s.percent_complete >= 0 && s.percent_complete < 25).length,
+          '25-50%': students.filter((s) => s.percent_complete >= 25 && s.percent_complete < 50).length,
+          '50-75%': students.filter((s) => s.percent_complete >= 50 && s.percent_complete < 75).length,
+          '75-100%': students.filter((s) => s.percent_complete >= 75 && s.percent_complete < 100).length,
+          '100%': students.filter((s) => s.percent_complete === 100).length,
+        };
+        return { completionRate, atRiskCount, emailsByType, totalEmailsSent, progressBuckets, totalStudents: students.length };
+      }, [students, dateRange]);
+
+      const statusOptions = useMemo(() => {
+        const labels = new Set(students.map((s) => statusMeta(s.status).label));
+        return ['all', ...Array.from(labels).sort()];
+      }, [students]);
+
+      const filteredStudents = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        return students
+          .filter((s) => !q || s.name.toLowerCase().includes(q))
+          .filter((s) => statusFilter === 'all' || statusMeta(s.status).label === statusFilter)
+          .sort((a, b) => a.name.localeCompare(b.name));
+      }, [students, search, statusFilter]);
+
+      useEffect(() => {
+        if (!loading && chartRef.current) {
+          const ctx = chartRef.current.getContext('2d');
+          if (chartInstance.current) { chartInstance.current.destroy(); }
+          chartInstance.current = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: ['0-25%', '25-50%', '50-75%', '75-100%', '100%'],
+              datasets: [{
+                data: [metrics.progressBuckets['0-25%'], metrics.progressBuckets['25-50%'], metrics.progressBuckets['50-75%'], metrics.progressBuckets['75-100%'], metrics.progressBuckets['100%']],
+                backgroundColor: PROGRESS_RAMP,
+              }],
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } } } },
+          });
+        }
+        return () => { if (chartInstance.current) { chartInstance.current.destroy(); } };
+      }, [metrics, loading]);
+
+      if (error) { return (<div className="container"><div className="error">Error: {error}</div></div>); }
+
+      return (
+        <div className="container">
+          <div className="header"><h1>Student Completion Dashboard</h1></div>
+          <div className="filter-bar">
+            <span className="filter-label">Time period:</span>
+            {['7d', '30d', '90d', 'all'].map((range) => (
+              <button key={range} className={`filter-btn ${dateRange === range ? 'active' : ''}`} onClick={() => setDateRange(range)}>
+                {range === '7d' ? 'Last 7 days' : range === '30d' ? 'Last 30 days' : range === '90d' ? 'Last 90 days' : 'All time'}
+              </button>
+            ))}
+          </div>
+          {loading && <div className="loading">Loading dashboard...</div>}
+          {!loading && (
+            <React.Fragment>
+              <div className="kpi-grid">
+                <div className="kpi-card">
+                  <div className="kpi-label">Completion rate</div>
+                  <div className="kpi-value">{metrics.completionRate}%</div>
+                  <div className="kpi-sub">{metrics.totalStudents} total students</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">At-risk students</div>
+                  <div className="kpi-value">{metrics.atRiskCount}</div>
+                  <div className="kpi-sub">Silent 7+ days</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-label">Total emails sent</div>
+                  <div className="kpi-value">{metrics.totalEmailsSent}</div>
+                  <div className="kpi-sub">This period</div>
+                </div>
+              </div>
+
+              <div className="chart-grid">
+                <div className="chart-card">
+                  <div className="chart-title">Progress distribution</div>
+                  <div className="chart-container"><canvas ref={chartRef} /></div>
+                </div>
+                <div className="chart-card">
+                  <div className="chart-title">Emails by type</div>
+                  <ul className="email-list">
+                    {Object.entries(metrics.emailsByType).map(([type, count], i) => (
+                      <li key={type} className="email-item">
+                        <span className="email-swatch" style={{ background: CATEGORICAL[i % CATEGORICAL.length] }}></span>
+                        <span className="email-type">{type}</span>
+                        <span className="email-count">{count}</span>
+                      </li>
+                    ))}
+                    {metrics.totalEmailsSent === 0 && <li className="email-item"><span className="email-type">No emails in this period</span></li>}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="table-card">
+                <div className="chart-title">Student status</div>
+                <div className="table-toolbar">
+                  <input
+                    className="search-input"
+                    type="text"
+                    placeholder="Search by name..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                  <select className="status-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    {statusOptions.map((opt) => (
+                      <option key={opt} value={opt}>{opt === 'all' ? 'All statuses' : opt}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="table-count">{filteredStudents.length} of {students.length} students</div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="students-table">
+                    <thead>
+                      <tr>
+                        <th>Student</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Enrolled</th>
+                        <th>Last email</th>
+                        <th>Last contact</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredStudents.map((s) => {
+                        const meta = statusMeta(s.status);
+                        return (
+                          <tr key={s.id}>
+                            <td className="student-name">{s.name}</td>
+                            <td><span className={`status-badge ${meta.tone}`}>{meta.icon} {meta.label}</span></td>
+                            <td>
+                              <div className="progress-cell">
+                                <div className="progress-track"><div className="progress-fill" style={{ width: `${Math.min(100, Math.max(0, s.percent_complete))}%` }}></div></div>
+                                <span className="progress-value">{Math.round(s.percent_complete)}%</span>
+                              </div>
+                            </td>
+                            <td>{formatDate(s.enrollment_date)}</td>
+                            <td>{s.last_email_type && s.last_email_type !== 'none' ? s.last_email_type : '—'}</td>
+                            <td>{formatDate(s.last_email_date)}</td>
+                          </tr>
+                        );
+                      })}
+                      {filteredStudents.length === 0 && (
+                        <tr><td className="empty-row" colSpan="6">No students match your filters.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="footer">Data synced from Airtable. Last updated: {new Date().toLocaleString()}</div>
+            </React.Fragment>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<Dashboard />, document.getElementById('root'));
+  </script>
+</body>
+</html>
