@@ -96,8 +96,9 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useMemo } = React;
 
-    // Sequential blue ramp, light -> dark, one hue per ordinal bucket.
-    const PROGRESS_RAMP = ['#86b6ef', '#5598e7', '#2a78d6', '#1c5cab', '#104281'];
+    // Progress buckets read low -> high, so red -> green makes the distribution obvious at a glance.
+    const PROGRESS_RAMP_LIGHT = ['#d03b3b', '#eb6834', '#eda100', '#1baf7a', '#008300'];
+    const PROGRESS_RAMP_DARK = ['#e66767', '#d95926', '#c98500', '#199e70', '#008300'];
     // Fixed-order categorical palette for email types.
     const CATEGORICAL = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
 
@@ -250,6 +251,7 @@
 
       useEffect(() => {
         if (!loading && chartRef.current) {
+          const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
           const ctx = chartRef.current.getContext('2d');
           if (chartInstance.current) { chartInstance.current.destroy(); }
           chartInstance.current = new Chart(ctx, {
@@ -258,10 +260,12 @@
               labels: ['0-25%', '25-50%', '50-75%', '75-100%', '100%'],
               datasets: [{
                 data: [metrics.progressBuckets['0-25%'], metrics.progressBuckets['25-50%'], metrics.progressBuckets['50-75%'], metrics.progressBuckets['75-100%'], metrics.progressBuckets['100%']],
-                backgroundColor: PROGRESS_RAMP,
+                backgroundColor: isDark ? PROGRESS_RAMP_DARK : PROGRESS_RAMP_LIGHT,
+                borderColor: isDark ? '#242423' : '#fcfcfb',
+                borderWidth: 2,
               }],
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } } } },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16, color: isDark ? '#c3c2b7' : '#52514e' } } } },
           });
         }
         return () => { if (chartInstance.current) { chartInstance.current.destroy(); } };
