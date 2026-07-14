@@ -22,6 +22,7 @@ The dashboard reads these fields from the `Students` table (matched case-insensi
 | `enrollment_date` | Date | |
 | `last_email_type` | Text / Single select | e.g. `testimonial`, `referral`, `reactivation`, `none` |
 | `last_email_date` | Date | Date the last email was sent |
+| `last_activity_date` | Date | Date of the student's last activity |
 | `days_since_activity` | Formula/Number | Days since the student was last active; drives the at-risk KPI |
 
 Other fields in the base (`email`, `course_name`, `testimonial_reply`, `engagement_trend`, `offer_ladder`, `next_email_type`, `next_eligible_date`, `email_history`, `days_since_last_email`, `last_status_reminder_date`) are ignored by the dashboard — only the fields above are used.

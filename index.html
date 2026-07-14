@@ -189,6 +189,7 @@
               enrollment_date: getField(fields, ['enrollment_date', 'Enrollment date'], null),
               last_email_type: getField(fields, ['last_email_type', 'Last email type'], 'none'),
               last_email_date: getField(fields, ['last_email_date', 'Last email sent'], null),
+              last_activity_date: getField(fields, ['last_activity_date', 'Last activity date'], null),
               days_since_activity: (() => {
                 const v = getField(fields, ['days_since_activity', 'Days since activity'], null);
                 return v === null || v === '' ? null : Number(v);
@@ -347,6 +348,7 @@
                         <th>Enrolled</th>
                         <th>Last email</th>
                         <th>Last email sent</th>
+                        <th>Last activity</th>
                         <th>Days inactive</th>
                       </tr>
                     </thead>
@@ -368,12 +370,13 @@
                             <td>{formatDate(s.enrollment_date)}</td>
                             <td>{s.last_email_type && s.last_email_type !== 'none' ? s.last_email_type : '—'}</td>
                             <td>{formatDate(s.last_email_date)}</td>
+                            <td>{formatDate(s.last_activity_date)}</td>
                             <td>{inactive === null ? '—' : <span className={isRisky ? 'days-inactive risky' : 'days-inactive'}>{inactive}d</span>}</td>
                           </tr>
                         );
                       })}
                       {filteredStudents.length === 0 && (
-                        <tr><td className="empty-row" colSpan="7">No students match your filters.</td></tr>
+                        <tr><td className="empty-row" colSpan="8">No students match your filters.</td></tr>
                       )}
                     </tbody>
                   </table>
