@@ -12,16 +12,19 @@ Real-time student status/completion tracking dashboard powered by Airtable.
 
 ## Airtable setup
 
-Your Airtable base needs a table (default name `Students`) with these fields (case-insensitive alternates are supported, see `api/students.js`):
+The dashboard reads these fields from the `Students` table (matched case-insensitively in `index.html`, so `student_name` or `Student Name` both work):
 
 | Field | Type | Notes |
 |---|---|---|
-| `name` | Text | Student's display name |
-| `status` | Text | e.g. `completed`, `in_progress`, `at_risk`, `not_started` |
+| `student_name` | Text | Student's display name |
+| `status` | Single select | e.g. `active`, `completed`, `at-risk`, `inactive` |
 | `percent_complete` | Number | 0–100 |
 | `enrollment_date` | Date | |
-| `last_email_type` | Text | e.g. `welcome`, `reminder`, `nudge` |
-| `last_email_date` | Date | |
+| `last_email_type` | Text / Single select | e.g. `testimonial`, `referral`, `reactivation`, `none` |
+| `last_email_date` | Date | Date the last email was sent |
+| `days_since_activity` | Formula/Number | Days since the student was last active; drives the at-risk KPI |
+
+Other fields in the base (`email`, `course_name`, `testimonial_reply`, `engagement_trend`, `offer_ladder`, `next_email_type`, `next_eligible_date`, `email_history`, `days_since_last_email`, `last_status_reminder_date`) are ignored by the dashboard — only the fields above are used.
 
 ## Deploy to Vercel (1 minute)
 

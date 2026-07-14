@@ -87,6 +87,8 @@
     .status-badge.critical { color: var(--critical); background: color-mix(in srgb, var(--critical) 14%, transparent); }
     .status-badge.muted { color: var(--text-secondary); background: var(--page); }
     .empty-row { text-align: center; color: var(--text-muted); padding: 2rem !important; }
+    .days-inactive { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+    .days-inactive.risky { color: var(--critical); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -99,9 +101,13 @@
     // Fixed-order categorical palette for email types.
     const CATEGORICAL = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
 
-    function getField(fields, keys, fallback) {
-      for (const key of keys) {
-        if (fields[key] !== undefined && fields[key] !== null && fields[key] !== '') return fields[key];
+    // Airtable field names are matched case-insensitively so "Name" and "name" both work.
+    function getField(fields, names, fallback) {
+      const lookup = {};
+      for (const key of Object.keys(fields)) lookup[key.toLowerCase().trim()] = fields[key];
+      for (const name of names) {
+        const value = lookup[name.toLowerCase()];
+        if (value !== undefined && value !== null && value !== '') return value;
       }
       return fallback;
     }
@@ -121,6 +127,19 @@
       const d = new Date(value);
       if (Number.isNaN(d.getTime())) return '—';
       return d.toLocaleDateString();
+    }
+
+    // Prefer Airtable's own "Days since activity" field; fall back to computing
+    // it from the last email date when that field is blank.
+    function daysInactive(student) {
+      if (typeof student.days_since_activity === 'number' && !Number.isNaN(student.days_since_activity)) {
+        return student.days_since_activity;
+      }
+      if (student.last_email_date) {
+        const d = new Date(student.last_email_date);
+        if (!Number.isNaN(d.getTime())) return Math.floor((new Date() - d) / (1000 * 60 * 60 * 24));
+      }
+      return null;
     }
 
     function Dashboard() {
@@ -164,12 +183,16 @@
             const fields = r.fields || {};
             return {
               id: r.id,
-              name: getField(fields, ['name', 'Name', 'student_name', 'Student Name', 'full_name', 'Student'], 'Unnamed student'),
+              name: getField(fields, ['student_name', 'Name', 'Student Name'], 'Unnamed student'),
               status: getField(fields, ['status', 'Status'], 'unknown'),
-              percent_complete: Number(getField(fields, ['percent_complete', 'Percent Complete'], 0)) || 0,
-              enrollment_date: getField(fields, ['enrollment_date', 'Enrollment Date'], null),
-              last_email_type: getField(fields, ['last_email_type', 'Last Email Type'], 'none'),
-              last_email_date: getField(fields, ['last_email_date', 'Last Email Date'], null),
+              percent_complete: Number(getField(fields, ['percent_complete', 'Percent complete'], 0)) || 0,
+              enrollment_date: getField(fields, ['enrollment_date', 'Enrollment date'], null),
+              last_email_type: getField(fields, ['last_email_type', 'Last email type'], 'none'),
+              last_email_date: getField(fields, ['last_email_date', 'Last email sent'], null),
+              days_since_activity: (() => {
+                const v = getField(fields, ['days_since_activity', 'Days since activity'], null);
+                return v === null || v === '' ? null : Number(v);
+              })(),
             };
           });
           setStudents(mapped);
@@ -189,12 +212,11 @@
         const completed = students.filter((s) => statusMeta(s.status).tone === 'good');
         const completionRate = students.length > 0 ? Math.round((completed.length / students.length) * 100) : 0;
         const atRiskCount = students.filter((s) => {
-          if (statusMeta(s.status).tone === 'good') return false;
-          if (s.last_email_date) {
-            const daysSince = Math.floor((new Date() - new Date(s.last_email_date)) / (1000 * 60 * 60 * 24));
-            return daysSince >= 7;
-          }
-          return false;
+          const tone = statusMeta(s.status).tone;
+          if (tone === 'good') return false;
+          if (tone === 'critical') return true; // status is already at-risk / inactive
+          const inactive = daysInactive(s);
+          return inactive !== null && inactive >= 7;
         }).length;
         const emailsByType = {};
         filteredByDate.forEach((s) => {
@@ -324,12 +346,15 @@
                         <th>Progress</th>
                         <th>Enrolled</th>
                         <th>Last email</th>
-                        <th>Last contact</th>
+                        <th>Last email sent</th>
+                        <th>Days inactive</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredStudents.map((s) => {
                         const meta = statusMeta(s.status);
+                        const inactive = daysInactive(s);
+                        const isRisky = meta.tone === 'critical' || (meta.tone !== 'good' && inactive !== null && inactive >= 7);
                         return (
                           <tr key={s.id}>
                             <td className="student-name">{s.name}</td>
@@ -343,11 +368,12 @@
                             <td>{formatDate(s.enrollment_date)}</td>
                             <td>{s.last_email_type && s.last_email_type !== 'none' ? s.last_email_type : '—'}</td>
                             <td>{formatDate(s.last_email_date)}</td>
+                            <td>{inactive === null ? '—' : <span className={isRisky ? 'days-inactive risky' : 'days-inactive'}>{inactive}d</span>}</td>
                           </tr>
                         );
                       })}
                       {filteredStudents.length === 0 && (
-                        <tr><td className="empty-row" colSpan="6">No students match your filters.</td></tr>
+                        <tr><td className="empty-row" colSpan="7">No students match your filters.</td></tr>
                       )}
                     </tbody>
                   </table>
