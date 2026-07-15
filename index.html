@@ -89,6 +89,20 @@
     .empty-row { text-align: center; color: var(--text-muted); padding: 2rem !important; }
     .days-inactive { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
     .days-inactive.risky { color: var(--critical); font-weight: 600; }
+    .student-row { cursor: pointer; }
+    .student-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(11,11,11,0.5); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 100; }
+    .modal-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px; max-width: 420px; width: 100%; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--hairline); }
+    .modal-header h2 { font-size: 18px; font-weight: 600; }
+    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 22px; line-height: 1; cursor: pointer; padding: 4px; }
+    .modal-close:hover { color: var(--text-primary); }
+    .modal-body { padding: 1rem 1.5rem 1.5rem; }
+    .modal-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--hairline); font-size: 13px; }
+    .modal-row:last-child { border-bottom: none; }
+    .modal-label { color: var(--text-secondary); }
+    .modal-value { font-weight: 500; text-align: right; }
   </style>
 </head>
 <body>
@@ -150,6 +164,7 @@
       const [dateRange, setDateRange] = useState('all');
       const [search, setSearch] = useState('');
       const [statusFilter, setStatusFilter] = useState('all');
+      const [selectedStudent, setSelectedStudent] = useState(null);
       const chartRef = useRef(null);
       const chartInstance = useRef(null);
 
@@ -185,6 +200,7 @@
             return {
               id: r.id,
               name: getField(fields, ['student_name', 'Name', 'Student Name'], 'Unnamed student'),
+              email: getField(fields, ['email', 'Email'], null),
               status: getField(fields, ['status', 'Status'], 'unknown'),
               percent_complete: Number(getField(fields, ['percent_complete', 'Percent complete'], 0)) || 0,
               enrollment_date: getField(fields, ['enrollment_date', 'Enrollment date'], null),
@@ -207,6 +223,12 @@
       };
 
       useEffect(() => { fetchStudents(); }, []);
+
+      useEffect(() => {
+        const onKeyDown = (e) => { if (e.key === 'Escape') setSelectedStudent(null); };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+      }, []);
 
       const metrics = useMemo(() => {
         const { start, end } = calculateDateRange(dateRange);
@@ -349,7 +371,6 @@
                         <th>Student</th>
                         <th>Status</th>
                         <th>Progress</th>
-                        <th>Enrolled</th>
                         <th>Last email</th>
                         <th>Last email sent</th>
                         <th>Last activity</th>
@@ -362,7 +383,7 @@
                         const inactive = daysInactive(s);
                         const isRisky = meta.tone === 'critical' || (meta.tone !== 'good' && inactive !== null && inactive >= 7);
                         return (
-                          <tr key={s.id}>
+                          <tr key={s.id} className="student-row" tabIndex="0" onClick={() => setSelectedStudent(s)} onKeyDown={(e) => { if (e.key === 'Enter') setSelectedStudent(s); }}>
                             <td className="student-name">{s.name}</td>
                             <td><span className={`status-badge ${meta.tone}`}>{meta.icon} {meta.label}</span></td>
                             <td>
@@ -371,7 +392,6 @@
                                 <span className="progress-value">{Math.round(s.percent_complete)}%</span>
                               </div>
                             </td>
-                            <td>{formatDate(s.enrollment_date)}</td>
                             <td>{s.last_email_type && s.last_email_type !== 'none' ? s.last_email_type : '—'}</td>
                             <td>{formatDate(s.last_email_date)}</td>
                             <td>{formatDate(s.last_activity_date)}</td>
@@ -380,7 +400,7 @@
                         );
                       })}
                       {filteredStudents.length === 0 && (
-                        <tr><td className="empty-row" colSpan="8">No students match your filters.</td></tr>
+                        <tr><td className="empty-row" colSpan="7">No students match your filters.</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -389,6 +409,34 @@
 
               <div className="footer">Data synced from Airtable. Last updated: {new Date().toLocaleString()}</div>
             </React.Fragment>
+          )}
+          {selectedStudent && (
+            <div className="modal-backdrop" onClick={() => setSelectedStudent(null)}>
+              <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h2>{selectedStudent.name}</h2>
+                  <button className="modal-close" onClick={() => setSelectedStudent(null)} aria-label="Close">&times;</button>
+                </div>
+                <div className="modal-body">
+                  {(() => {
+                    const meta = statusMeta(selectedStudent.status);
+                    const inactive = daysInactive(selectedStudent);
+                    return (
+                      <React.Fragment>
+                        <div className="modal-row"><span className="modal-label">Email</span><span className="modal-value">{selectedStudent.email || '—'}</span></div>
+                        <div className="modal-row"><span className="modal-label">Status</span><span className="modal-value"><span className={`status-badge ${meta.tone}`}>{meta.icon} {meta.label}</span></span></div>
+                        <div className="modal-row"><span className="modal-label">Progress</span><span className="modal-value">{Math.round(selectedStudent.percent_complete)}%</span></div>
+                        <div className="modal-row"><span className="modal-label">Enrolled</span><span className="modal-value">{formatDate(selectedStudent.enrollment_date)}</span></div>
+                        <div className="modal-row"><span className="modal-label">Last email</span><span className="modal-value">{selectedStudent.last_email_type && selectedStudent.last_email_type !== 'none' ? selectedStudent.last_email_type : '—'}</span></div>
+                        <div className="modal-row"><span className="modal-label">Last email sent</span><span className="modal-value">{formatDate(selectedStudent.last_email_date)}</span></div>
+                        <div className="modal-row"><span className="modal-label">Last activity</span><span className="modal-value">{formatDate(selectedStudent.last_activity_date)}</span></div>
+                        <div className="modal-row"><span className="modal-label">Days inactive</span><span className="modal-value">{inactive === null ? '—' : `${inactive}d`}</span></div>
+                      </React.Fragment>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
           )}
         </div>
       );

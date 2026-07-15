@@ -8,7 +8,8 @@ Real-time student status/completion tracking dashboard powered by Airtable.
 - **Date filtering**: Last 7 days, 30 days, 90 days, all time
 - **Progress visualization**: Doughnut chart showing progress distribution
 - **Email tracking**: Breakdown by email type sent
-- **Per-student status table**: Search by name, filter by status, see progress, enrollment date, and last email contact for every student
+- **Per-student status table**: Search by name, filter by status, see progress and last email contact for every student
+- **Student detail view**: Click any row to see that student's full detail (email, enrollment date, activity) in a popup
 
 ## Airtable setup
 
@@ -17,6 +18,7 @@ The dashboard reads these fields from the `Students` table (matched case-insensi
 | Field | Type | Notes |
 |---|---|---|
 | `student_name` | Text | Student's display name |
+| `email` | Email | Shown in the student detail popup |
 | `status` | Single select | e.g. `active`, `completed`, `at-risk`, `inactive` |
 | `percent_complete` | Number | 0–100 |
 | `enrollment_date` | Date | |
@@ -25,7 +27,7 @@ The dashboard reads these fields from the `Students` table (matched case-insensi
 | `last_activity_date` | Date | Date of the student's last activity |
 | `days_since_activity` | Formula/Number | Days since the student was last active; drives the at-risk KPI |
 
-Other fields in the base (`email`, `course_name`, `testimonial_reply`, `engagement_trend`, `offer_ladder`, `next_email_type`, `next_eligible_date`, `email_history`, `days_since_last_email`, `last_status_reminder_date`) are ignored by the dashboard — only the fields above are used.
+Other fields in the base (`course_name`, `testimonial_reply`, `engagement_trend`, `offer_ladder`, `next_email_type`, `next_eligible_date`, `email_history`, `days_since_last_email`, `last_status_reminder_date`) are ignored by the dashboard — only the fields above are used.
 
 ## Deploy to Vercel (1 minute)
 
