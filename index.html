@@ -27,7 +27,7 @@
       --critical: #d03b3b;
     }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:where(:not([data-theme="light"])) {
         --surface-1: #242423;
         --page: #1a1a19;
         --text-primary: #ffffff;
@@ -38,10 +38,25 @@
         --accent: #3987e5;
       }
     }
+    :root[data-theme="dark"] {
+      --surface-1: #242423;
+      --page: #1a1a19;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted: #898781;
+      --border: #444;
+      --hairline: #333;
+      --accent: #3987e5;
+    }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--page); color: var(--text-primary); }
     .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-    .header { margin-bottom: 2rem; }
+    .header { margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .header h1 { font-size: 28px; font-weight: 600; margin: 0; }
+    .theme-toggle { display: flex; align-items: center; gap: 8px; background: none; border: none; cursor: pointer; padding: 4px; color: var(--text-secondary); font-size: 13px; font-weight: 500; }
+    .theme-toggle-track { position: relative; width: 40px; height: 22px; border-radius: 11px; background: var(--border); transition: background 0.2s; flex-shrink: 0; }
+    .theme-toggle[aria-pressed="true"] .theme-toggle-track { background: var(--accent); }
+    .theme-toggle-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface-1); transition: transform 0.2s; box-shadow: 0 1px 2px rgba(11,11,11,0.2); }
+    .theme-toggle[aria-pressed="true"] .theme-toggle-thumb { transform: translateX(18px); }
     .filter-bar { background: var(--surface-1); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 2rem; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .filter-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-right: 8px; }
     .filter-btn { padding: 8px 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-1); color: var(--text-primary); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
@@ -165,6 +180,11 @@
       const [search, setSearch] = useState('');
       const [statusFilter, setStatusFilter] = useState('all');
       const [selectedStudent, setSelectedStudent] = useState(null);
+      const [theme, setTheme] = useState(() => {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'light' || saved === 'dark') return saved;
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      });
       const chartRef = useRef(null);
       const chartInstance = useRef(null);
 
@@ -225,6 +245,11 @@
       useEffect(() => { fetchStudents(); }, []);
 
       useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+      }, [theme]);
+
+      useEffect(() => {
         const onKeyDown = (e) => { if (e.key === 'Escape') setSelectedStudent(null); };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
@@ -273,7 +298,7 @@
 
       useEffect(() => {
         if (!loading && chartRef.current) {
-          const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const isDark = theme === 'dark';
           const ctx = chartRef.current.getContext('2d');
           if (chartInstance.current) { chartInstance.current.destroy(); }
           chartInstance.current = new Chart(ctx, {
@@ -291,13 +316,24 @@
           });
         }
         return () => { if (chartInstance.current) { chartInstance.current.destroy(); } };
-      }, [metrics, loading]);
+      }, [metrics, loading, theme]);
 
       if (error) { return (<div className="container"><div className="error">Error: {error}</div></div>); }
 
       return (
         <div className="container">
-          <div className="header"><h1>Student Completion Dashboard</h1></div>
+          <div className="header">
+            <h1>Student Completion Dashboard</h1>
+            <button
+              className="theme-toggle"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              aria-pressed={theme === 'dark'}
+            >
+              <span className="theme-toggle-track"><span className="theme-toggle-thumb"></span></span>
+              <span className="theme-toggle-label">{theme === 'dark' ? 'Dark' : 'Light'}</span>
+            </button>
+          </div>
           <div className="filter-bar">
             <span className="filter-label">Time period:</span>
             {['7d', '30d', '90d', 'all'].map((range) => (
