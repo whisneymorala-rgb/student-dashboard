@@ -1,485 +1,304 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Completion Dashboard</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --surface-1: #fcfcfb;
-      --page: #f5f5f5;
-      --text-primary: #0b0b0b;
-      --text-secondary: #52514e;
-      --text-muted: #898781;
-      --border: #e0e0e0;
-      --hairline: #f0f0f0;
-      --accent: #2a78d6;
-      --accent-ink: #ffffff;
-      /* Status palette is fixed — same hex in light and dark, never themed. */
-      --good: #0ca30c;
-      --warning: #fab219;
-      --serious: #ec835a;
-      --critical: #d03b3b;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root:where(:not([data-theme="light"])) {
-        --surface-1: #242423;
-        --page: #1a1a19;
-        --text-primary: #ffffff;
-        --text-secondary: #c3c2b7;
-        --text-muted: #898781;
-        --border: #444;
-        --hairline: #333;
-        --accent: #3987e5;
-      }
-    }
-    :root[data-theme="dark"] {
-      --surface-1: #242423;
-      --page: #1a1a19;
-      --text-primary: #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted: #898781;
-      --border: #444;
-      --hairline: #333;
-      --accent: #3987e5;
-    }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--page); color: var(--text-primary); }
-    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-    .header { margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-    .header h1 { font-size: 28px; font-weight: 600; margin: 0; }
-    .theme-toggle { display: flex; align-items: center; gap: 8px; background: none; border: none; cursor: pointer; padding: 4px; color: var(--text-secondary); font-size: 13px; font-weight: 500; }
-    .theme-toggle-track { position: relative; width: 40px; height: 22px; border-radius: 11px; background: var(--border); transition: background 0.2s; flex-shrink: 0; }
-    .theme-toggle[aria-pressed="true"] .theme-toggle-track { background: var(--accent); }
-    .theme-toggle-thumb { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface-1); transition: transform 0.2s; box-shadow: 0 1px 2px rgba(11,11,11,0.2); }
-    .theme-toggle[aria-pressed="true"] .theme-toggle-thumb { transform: translateX(18px); }
-    .filter-bar { background: var(--surface-1); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 2rem; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .filter-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-right: 8px; }
-    .filter-btn { padding: 8px 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-1); color: var(--text-primary); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
-    .filter-btn:hover { border-color: var(--accent); }
-    .filter-btn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 2rem; }
-    .kpi-card { background: var(--surface-1); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border); }
-    .kpi-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
-    .kpi-value { font-size: 36px; font-weight: 600; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
-    .kpi-sub { font-size: 12px; color: var(--text-muted); }
-    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
-    @media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
-    .chart-card { background: var(--surface-1); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border); }
-    .chart-title { font-size: 16px; font-weight: 600; margin-bottom: 1rem; }
-    .chart-container { position: relative; height: 280px; }
-    .email-list { list-style: none; }
-    .email-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--hairline); font-size: 13px; }
-    .email-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-    .email-type { color: var(--text-secondary); text-transform: capitalize; flex: 1; }
-    .email-count { font-weight: 600; font-variant-numeric: tabular-nums; }
-    .loading { text-align: center; padding: 2rem; color: var(--text-secondary); }
-    .error { padding: 2rem; background: #fee; border-radius: 8px; color: #c33; border: 1px solid #fcc; }
-    .footer { text-align: center; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 2rem; }
-
-    .table-card { background: var(--surface-1); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 2rem; }
-    .table-toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
-    .search-input { flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--page); color: var(--text-primary); font-size: 13px; }
-    .status-select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--page); color: var(--text-primary); font-size: 13px; }
-    .table-count { font-size: 12px; color: var(--text-muted); margin-bottom: 1rem; }
-    table.students-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .students-table th { text-align: left; padding: 8px 12px; color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--border); }
-    .students-table td { padding: 10px 12px; border-bottom: 1px solid var(--hairline); vertical-align: middle; }
-    .students-table tbody tr:hover { background: var(--page); }
-    .student-name { font-weight: 500; }
-    .progress-cell { display: flex; align-items: center; gap: 8px; }
-    .progress-track { flex: 1; height: 6px; border-radius: 3px; background: var(--hairline); min-width: 60px; }
-    .progress-fill { height: 100%; border-radius: 3px; background: var(--accent); }
-    .progress-value { font-variant-numeric: tabular-nums; color: var(--text-secondary); font-size: 12px; min-width: 34px; text-align: right; }
-    .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
-    .status-badge.good { color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent); }
-    .status-badge.warning { color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, transparent); }
-    .status-badge.serious { color: var(--serious); background: color-mix(in srgb, var(--serious) 16%, transparent); }
-    .status-badge.critical { color: var(--critical); background: color-mix(in srgb, var(--critical) 14%, transparent); }
-    .status-badge.muted { color: var(--text-secondary); background: var(--page); }
-    .empty-row { text-align: center; color: var(--text-muted); padding: 2rem !important; }
-    .days-inactive { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
-    .days-inactive.risky { color: var(--critical); font-weight: 600; }
-    .student-row { cursor: pointer; }
-    .student-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(11,11,11,0.5); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 100; }
-    .modal-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px; max-width: 420px; width: 100%; max-height: 90vh; overflow-y: auto; }
-    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--hairline); }
-    .modal-header h2 { font-size: 18px; font-weight: 600; }
-    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 22px; line-height: 1; cursor: pointer; padding: 4px; }
-    .modal-close:hover { color: var(--text-primary); }
-    .modal-body { padding: 1rem 1.5rem 1.5rem; }
-    .modal-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--hairline); font-size: 13px; }
-    .modal-row:last-child { border-bottom: none; }
-    .modal-label { color: var(--text-secondary); }
-    .modal-value { font-weight: 500; text-align: right; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Whisney Morala — Customer Service &amp; Automation Professional</title>
+<meta name="description" content="Whisney Morala — Customer Service, Administrative Support, AI Automation, Make.com &amp; Airtable specialist. Portfolio and resume.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231B2A41'/%3E%3Ctext x='32' y='42' font-family='Arial, sans-serif' font-size='28' font-weight='700' fill='%232F6F63' text-anchor='middle'%3EWM%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useEffect, useRef, useMemo } = React;
 
-    // Progress buckets read low -> high, so red -> green makes the distribution obvious at a glance.
-    // Lightened tints of the base red/orange/amber/aqua/green scale, re-validated with the dataviz palette checker.
-    const PROGRESS_RAMP_LIGHT = ['#d96262', '#ef865d', '#eda100', '#49bf95', '#339c33'];
-    const PROGRESS_RAMP_DARK = ['#e66767', '#dd6a3c', '#c98500', '#30a87e', '#1a8f1a'];
-    // Fixed-order categorical palette for email types.
-    const CATEGORICAL = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
+<header class="site-header" id="siteHeader">
+  <div class="container header-inner">
+    <a href="#top" class="brand">WHISNEY MORALA</a>
+    <nav class="nav" id="mainNav">
+      <a href="#about">About</a>
+      <a href="#skills">Skills</a>
+      <a href="#experience">Experience</a>
+      <a href="#certifications">Certifications</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <a href="#contact" class="btn btn-accent nav-cta">Get in Touch</a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
 
-    // Airtable field names are matched case-insensitively so "Name" and "name" both work.
-    function getField(fields, names, fallback) {
-      const lookup = {};
-      for (const key of Object.keys(fields)) lookup[key.toLowerCase().trim()] = fields[key];
-      for (const name of names) {
-        const value = lookup[name.toLowerCase()];
-        if (value !== undefined && value !== null && value !== '') return value;
-      }
-      return fallback;
-    }
+<main>
 
-    function statusMeta(rawStatus) {
-      const s = String(rawStatus || '').toLowerCase();
-      if (s.includes('complet')) return { label: 'Completed', tone: 'good', icon: '✓' };
-      if (s.includes('risk')) return { label: 'At risk', tone: 'critical', icon: '✕' };
-      if (s.includes('drop') || s.includes('inactive') || s.includes('cancel')) return { label: 'Inactive', tone: 'critical', icon: '✕' };
-      if (s.includes('progress') || s.includes('active')) return { label: 'In progress', tone: 'warning', icon: '●' };
-      if (s.includes('not_start') || s.includes('not started') || s.includes('pending')) return { label: 'Not started', tone: 'muted', icon: '○' };
-      return { label: rawStatus || 'Unknown', tone: 'muted', icon: '○' };
-    }
-
-    function formatDate(value) {
-      if (!value) return '—';
-      const d = new Date(value);
-      if (Number.isNaN(d.getTime())) return '—';
-      return d.toLocaleDateString();
-    }
-
-    // Prefer Airtable's own "Days since activity" field; fall back to computing
-    // it from the last email date when that field is blank.
-    function daysInactive(student) {
-      if (typeof student.days_since_activity === 'number' && !Number.isNaN(student.days_since_activity)) {
-        return student.days_since_activity;
-      }
-      if (student.last_email_date) {
-        const d = new Date(student.last_email_date);
-        if (!Number.isNaN(d.getTime())) return Math.floor((new Date() - d) / (1000 * 60 * 60 * 24));
-      }
-      return null;
-    }
-
-    function Dashboard() {
-      const [students, setStudents] = useState([]);
-      const [loading, setLoading] = useState(true);
-      const [error, setError] = useState(null);
-      const [dateRange, setDateRange] = useState('all');
-      const [search, setSearch] = useState('');
-      const [statusFilter, setStatusFilter] = useState('all');
-      const [selectedStudent, setSelectedStudent] = useState(null);
-      const [theme, setTheme] = useState(() => {
-        const saved = localStorage.getItem('theme');
-        if (saved === 'light' || saved === 'dark') return saved;
-        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      });
-      const chartRef = useRef(null);
-      const chartInstance = useRef(null);
-
-      const calculateDateRange = (rangeType) => {
-        const now = new Date();
-        let start;
-        const end = now;
-        switch (rangeType) {
-          case '7d':
-            start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            break;
-          case '30d':
-            start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-            break;
-          case '90d':
-            start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-            break;
-          default:
-            start = new Date(0);
-        }
-        return { start, end };
-      };
-
-      const fetchStudents = async () => {
-        try {
-          setLoading(true);
-          const response = await fetch('/api/students');
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error || 'Failed to fetch data');
-          const records = data.records || [];
-          const mapped = records.map((r) => {
-            const fields = r.fields || {};
-            return {
-              id: r.id,
-              name: getField(fields, ['student_name', 'Name', 'Student Name'], 'Unnamed student'),
-              email: getField(fields, ['email', 'Email'], null),
-              status: getField(fields, ['status', 'Status'], 'unknown'),
-              percent_complete: Number(getField(fields, ['percent_complete', 'Percent complete'], 0)) || 0,
-              enrollment_date: getField(fields, ['enrollment_date', 'Enrollment date'], null),
-              last_email_type: getField(fields, ['last_email_type', 'Last email type'], 'none'),
-              last_email_date: getField(fields, ['last_email_date', 'Last email sent'], null),
-              last_activity_date: getField(fields, ['last_activity_date', 'Last activity date'], null),
-              days_since_activity: (() => {
-                const v = getField(fields, ['days_since_activity', 'Days since activity'], null);
-                return v === null || v === '' ? null : Number(v);
-              })(),
-            };
-          });
-          setStudents(mapped);
-          setError(null);
-        } catch (err) {
-          setError(err.message || 'Failed to load data');
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      useEffect(() => { fetchStudents(); }, []);
-
-      useEffect(() => {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-      }, [theme]);
-
-      useEffect(() => {
-        const onKeyDown = (e) => { if (e.key === 'Escape') setSelectedStudent(null); };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-      }, []);
-
-      const metrics = useMemo(() => {
-        const { start, end } = calculateDateRange(dateRange);
-        const filteredByDate = students.filter((s) => s.last_email_date && new Date(s.last_email_date) >= start && new Date(s.last_email_date) <= end);
-        const completed = students.filter((s) => statusMeta(s.status).tone === 'good');
-        const completionRate = students.length > 0 ? Math.round((completed.length / students.length) * 100) : 0;
-        const atRiskCount = students.filter((s) => {
-          const tone = statusMeta(s.status).tone;
-          if (tone === 'good') return false;
-          if (tone === 'critical') return true; // status is already at-risk / inactive
-          const inactive = daysInactive(s);
-          return inactive !== null && inactive >= 7;
-        }).length;
-        const emailsByType = {};
-        filteredByDate.forEach((s) => {
-          const type = s.last_email_type || 'none';
-          emailsByType[type] = (emailsByType[type] || 0) + 1;
-        });
-        const totalEmailsSent = Object.values(emailsByType).reduce((a, b) => a + b, 0);
-        const progressBuckets = {
-          '0-25%': students.filter((s) => s.percent_complete >= 0 && s.percent_complete < 25).length,
-          '25-50%': students.filter((s) => s.percent_complete >= 25 && s.percent_complete < 50).length,
-          '50-75%': students.filter((s) => s.percent_complete >= 50 && s.percent_complete < 75).length,
-          '75-100%': students.filter((s) => s.percent_complete >= 75 && s.percent_complete < 100).length,
-          '100%': students.filter((s) => s.percent_complete === 100).length,
-        };
-        return { completionRate, atRiskCount, emailsByType, totalEmailsSent, progressBuckets, totalStudents: students.length };
-      }, [students, dateRange]);
-
-      const statusOptions = useMemo(() => {
-        const labels = new Set(students.map((s) => statusMeta(s.status).label));
-        return ['all', ...Array.from(labels).sort()];
-      }, [students]);
-
-      const filteredStudents = useMemo(() => {
-        const q = search.trim().toLowerCase();
-        return students
-          .filter((s) => !q || s.name.toLowerCase().includes(q))
-          .filter((s) => statusFilter === 'all' || statusMeta(s.status).label === statusFilter)
-          .sort((a, b) => a.name.localeCompare(b.name));
-      }, [students, search, statusFilter]);
-
-      useEffect(() => {
-        if (!loading && chartRef.current) {
-          const isDark = theme === 'dark';
-          const ctx = chartRef.current.getContext('2d');
-          if (chartInstance.current) { chartInstance.current.destroy(); }
-          chartInstance.current = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-              labels: ['0-25%', '25-50%', '50-75%', '75-100%', '100%'],
-              datasets: [{
-                data: [metrics.progressBuckets['0-25%'], metrics.progressBuckets['25-50%'], metrics.progressBuckets['50-75%'], metrics.progressBuckets['75-100%'], metrics.progressBuckets['100%']],
-                backgroundColor: isDark ? PROGRESS_RAMP_DARK : PROGRESS_RAMP_LIGHT,
-                borderColor: isDark ? '#242423' : '#fcfcfb',
-                borderWidth: 2,
-              }],
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16, color: isDark ? '#c3c2b7' : '#52514e' } } } },
-          });
-        }
-        return () => { if (chartInstance.current) { chartInstance.current.destroy(); } };
-      }, [metrics, loading, theme]);
-
-      if (error) { return (<div className="container"><div className="error">Error: {error}</div></div>); }
-
-      return (
-        <div className="container">
-          <div className="header">
-            <h1>Student Completion Dashboard</h1>
-            <button
-              className="theme-toggle"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              aria-pressed={theme === 'dark'}
-            >
-              <span className="theme-toggle-track"><span className="theme-toggle-thumb"></span></span>
-              <span className="theme-toggle-label">{theme === 'dark' ? 'Dark' : 'Light'}</span>
-            </button>
-          </div>
-          <div className="filter-bar">
-            <span className="filter-label">Time period:</span>
-            {['7d', '30d', '90d', 'all'].map((range) => (
-              <button key={range} className={`filter-btn ${dateRange === range ? 'active' : ''}`} onClick={() => setDateRange(range)}>
-                {range === '7d' ? 'Last 7 days' : range === '30d' ? 'Last 30 days' : range === '90d' ? 'Last 90 days' : 'All time'}
-              </button>
-            ))}
-          </div>
-          {loading && <div className="loading">Loading dashboard...</div>}
-          {!loading && (
-            <React.Fragment>
-              <div className="kpi-grid">
-                <div className="kpi-card">
-                  <div className="kpi-label">Completion rate</div>
-                  <div className="kpi-value">{metrics.completionRate}%</div>
-                  <div className="kpi-sub">{metrics.totalStudents} total students</div>
-                </div>
-                <div className="kpi-card">
-                  <div className="kpi-label">At-risk students</div>
-                  <div className="kpi-value">{metrics.atRiskCount}</div>
-                  <div className="kpi-sub">Silent 7+ days</div>
-                </div>
-                <div className="kpi-card">
-                  <div className="kpi-label">Total emails sent</div>
-                  <div className="kpi-value">{metrics.totalEmailsSent}</div>
-                  <div className="kpi-sub">This period</div>
-                </div>
-              </div>
-
-              <div className="chart-grid">
-                <div className="chart-card">
-                  <div className="chart-title">Progress distribution</div>
-                  <div className="chart-container"><canvas ref={chartRef} /></div>
-                </div>
-                <div className="chart-card">
-                  <div className="chart-title">Emails by type</div>
-                  <ul className="email-list">
-                    {Object.entries(metrics.emailsByType).map(([type, count], i) => (
-                      <li key={type} className="email-item">
-                        <span className="email-swatch" style={{ background: CATEGORICAL[i % CATEGORICAL.length] }}></span>
-                        <span className="email-type">{type}</span>
-                        <span className="email-count">{count}</span>
-                      </li>
-                    ))}
-                    {metrics.totalEmailsSent === 0 && <li className="email-item"><span className="email-type">No emails in this period</span></li>}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="table-card">
-                <div className="chart-title">Student status</div>
-                <div className="table-toolbar">
-                  <input
-                    className="search-input"
-                    type="text"
-                    placeholder="Search by name..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                  <select className="status-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                    {statusOptions.map((opt) => (
-                      <option key={opt} value={opt}>{opt === 'all' ? 'All statuses' : opt}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="table-count">{filteredStudents.length} of {students.length} students</div>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="students-table">
-                    <thead>
-                      <tr>
-                        <th>Student</th>
-                        <th>Status</th>
-                        <th>Progress</th>
-                        <th>Last email</th>
-                        <th>Last email sent</th>
-                        <th>Last activity</th>
-                        <th>Days inactive</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredStudents.map((s) => {
-                        const meta = statusMeta(s.status);
-                        const inactive = daysInactive(s);
-                        const isRisky = meta.tone === 'critical' || (meta.tone !== 'good' && inactive !== null && inactive >= 7);
-                        return (
-                          <tr key={s.id} className="student-row" tabIndex="0" onClick={() => setSelectedStudent(s)} onKeyDown={(e) => { if (e.key === 'Enter') setSelectedStudent(s); }}>
-                            <td className="student-name">{s.name}</td>
-                            <td><span className={`status-badge ${meta.tone}`}>{meta.icon} {meta.label}</span></td>
-                            <td>
-                              <div className="progress-cell">
-                                <div className="progress-track"><div className="progress-fill" style={{ width: `${Math.min(100, Math.max(0, s.percent_complete))}%` }}></div></div>
-                                <span className="progress-value">{Math.round(s.percent_complete)}%</span>
-                              </div>
-                            </td>
-                            <td>{s.last_email_type && s.last_email_type !== 'none' ? s.last_email_type : '—'}</td>
-                            <td>{formatDate(s.last_email_date)}</td>
-                            <td>{formatDate(s.last_activity_date)}</td>
-                            <td>{inactive === null ? '—' : <span className={isRisky ? 'days-inactive risky' : 'days-inactive'}>{inactive}d</span>}</td>
-                          </tr>
-                        );
-                      })}
-                      {filteredStudents.length === 0 && (
-                        <tr><td className="empty-row" colSpan="7">No students match your filters.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="footer">Data synced from Airtable. Last updated: {new Date().toLocaleString()}</div>
-            </React.Fragment>
-          )}
-          {selectedStudent && (
-            <div className="modal-backdrop" onClick={() => setSelectedStudent(null)}>
-              <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                  <h2>{selectedStudent.name}</h2>
-                  <button className="modal-close" onClick={() => setSelectedStudent(null)} aria-label="Close">&times;</button>
-                </div>
-                <div className="modal-body">
-                  {(() => {
-                    const meta = statusMeta(selectedStudent.status);
-                    const inactive = daysInactive(selectedStudent);
-                    return (
-                      <React.Fragment>
-                        <div className="modal-row"><span className="modal-label">Email</span><span className="modal-value">{selectedStudent.email || '—'}</span></div>
-                        <div className="modal-row"><span className="modal-label">Status</span><span className="modal-value"><span className={`status-badge ${meta.tone}`}>{meta.icon} {meta.label}</span></span></div>
-                        <div className="modal-row"><span className="modal-label">Progress</span><span className="modal-value">{Math.round(selectedStudent.percent_complete)}%</span></div>
-                        <div className="modal-row"><span className="modal-label">Enrolled</span><span className="modal-value">{formatDate(selectedStudent.enrollment_date)}</span></div>
-                        <div className="modal-row"><span className="modal-label">Last email</span><span className="modal-value">{selectedStudent.last_email_type && selectedStudent.last_email_type !== 'none' ? selectedStudent.last_email_type : '—'}</span></div>
-                        <div className="modal-row"><span className="modal-label">Last email sent</span><span className="modal-value">{formatDate(selectedStudent.last_email_date)}</span></div>
-                        <div className="modal-row"><span className="modal-label">Last activity</span><span className="modal-value">{formatDate(selectedStudent.last_activity_date)}</span></div>
-                        <div className="modal-row"><span className="modal-label">Days inactive</span><span className="modal-value">{inactive === null ? '—' : `${inactive}d`}</span></div>
-                      </React.Fragment>
-                    );
-                  })()}
-                </div>
-              </div>
-            </div>
-          )}
+  <section class="hero" id="top">
+    <div class="container hero-inner">
+      <div class="hero-text">
+        <p class="eyebrow">Customer Service &amp; Administrative Professional</p>
+        <h1>Whisney Morala</h1>
+        <p class="hero-tagline">Delivering seamless guest experiences and building smarter workflows with AI automation, Make.com, and Airtable.</p>
+        <p class="hero-desc">Dedicated to providing exceptional service, with a strong background in customer-facing roles and a keen focus on accuracy, organization, and efficiency. I bring a versatile skill set that blends hospitality-grade service with modern no-code automation to help teams work smarter.</p>
+        <div class="hero-actions">
+          <a href="#contact" class="btn btn-accent">Get in Touch</a>
+          <a href="#experience" class="btn btn-outline">View Experience</a>
         </div>
-      );
-    }
+        <ul class="hero-meta">
+          <li><span>Location</span>Taguig City, Metro Manila, Philippines</li>
+          <li><span>Email</span><a href="mailto:whisneymorala08@gmail.com">whisneymorala08@gmail.com</a></li>
+        </ul>
+      </div>
+      <div class="hero-photo">
+        <img src="images/profile.jpg" alt="Portrait of Whisney Morala" width="700" height="828" loading="eager">
+      </div>
+    </div>
+  </section>
 
-    ReactDOM.render(<Dashboard />, document.getElementById('root'));
-  </script>
+  <section class="section" id="about">
+    <div class="container">
+      <p class="section-eyebrow">About</p>
+      <h2 class="section-title">Career Objective</h2>
+      <div class="about-grid">
+        <p class="about-text">Dedicated to providing exceptional service, with a strong background in customer-facing roles and ensuring customer satisfaction. I bring to the table a versatile skill set and a strong capacity to manage diverse tasks. With a keen enthusiasm for learning, I can contribute effectively to a professional environment while continually expanding my knowledge and capabilities.</p>
+        <div class="about-side">
+          <div class="about-item">
+            <h3>Languages</h3>
+            <p>English — Business Proficiency<br>Filipino — Mother Tongue</p>
+          </div>
+          <div class="about-item">
+            <h3>Core Strengths</h3>
+            <div class="chip-row">
+              <span class="chip">Attention to Detail</span>
+              <span class="chip">Problem Solving</span>
+              <span class="chip">Customer Service</span>
+              <span class="chip">Versatility</span>
+              <span class="chip">Dependability</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt" id="skills">
+    <div class="container">
+      <p class="section-eyebrow">Skills</p>
+      <h2 class="section-title">Where I Add Value</h2>
+      <p class="section-subtitle">A blend of frontline service experience and modern, no-code automation skills.</p>
+
+      <div class="skills-grid">
+
+        <div class="skill-card">
+          <div class="skill-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/></svg>
+          </div>
+          <h3>Customer Service</h3>
+          <ul>
+            <li>Resolving guest and member inquiries with a calm, solutions-first approach</li>
+            <li>Onboarding and acquiring new members, clearly explaining benefits</li>
+            <li>Handling sensitive member data with strict confidentiality</li>
+            <li>Building rapport that turns first-time guests into repeat customers</li>
+          </ul>
+        </div>
+
+        <div class="skill-card">
+          <div class="skill-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16v4H4zM4 10h10v4H4zM4 16h16v4H4z"/></svg>
+          </div>
+          <h3>Administrative Support</h3>
+          <ul>
+            <li>Proficient across the Google Workspace suite for daily operations</li>
+            <li>Designing event materials, posters, and internal communications</li>
+            <li>Coordinating schedules, records, and cross-team logistics</li>
+            <li>Leading and onboarding fellow interns and new team members</li>
+          </ul>
+        </div>
+
+        <div class="skill-card">
+          <div class="skill-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 2l2.2 4.5L19 7.3l-3.5 3.4.8 4.8L12 13.3 7.7 15.5l.8-4.8L5 7.3l4.8-.8z"/></svg>
+          </div>
+          <h3>AI Automation</h3>
+          <ul>
+            <li>Designing AI-assisted workflows to reduce repetitive manual work</li>
+            <li>Using AI tools to draft, summarize, and organize information faster</li>
+            <li>Mapping processes end-to-end to identify what can be automated</li>
+            <li>Continuously learning new automation tools and best practices</li>
+          </ul>
+        </div>
+
+        <div class="skill-card">
+          <div class="skill-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>
+          </div>
+          <h3>Make.com &amp; Airtable</h3>
+          <ul>
+            <li>Building automated scenarios in Make.com to connect apps and tools</li>
+            <li>Structuring and managing databases in Airtable for daily tracking</li>
+            <li>Creating simple, reliable no-code systems that save time</li>
+            <li>Keeping data clean, organized, and easy for teams to act on</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="experience">
+    <div class="container">
+      <p class="section-eyebrow">Experience</p>
+      <h2 class="section-title">Work Experience &amp; Training</h2>
+
+      <div class="timeline">
+
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <h3>Membership Ambassador — Newport World Resorts</h3>
+              <span class="timeline-date">February 2025 – May 2026</span>
+            </div>
+            <p class="timeline-company">Travellers International Hotel Group Inc.</p>
+            <ul>
+              <li>Assisted and resolved guest inquiries regarding membership, hotel reservations, and general information, ensuring a seamless and positive guest experience</li>
+              <li>Acquired new members and clearly explained membership benefits</li>
+              <li>Maintained strict confidentiality of all member data, adhering to company privacy policies to ensure the security and trust of all guests</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <h3>Human Resources Culture &amp; Engagement Intern</h3>
+              <span class="timeline-date">June 2024 – August 2024</span>
+            </div>
+            <p class="timeline-company">Travellers International Hotel Group Inc.</p>
+            <ul>
+              <li>Worked extensively within Google Workspace to support HR operations</li>
+              <li>Designed and created engaging posters and interactive games for company events</li>
+              <li>Represented the company at career fairs across multiple schools and universities</li>
+              <li>Assigned to lead fellow interns throughout the internship program</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <h3>Fundamentals of Airline Cabin Crew Training with Practical Application</h3>
+              <span class="timeline-date">February 2024 – March 2024</span>
+            </div>
+            <p class="timeline-company">SafeSkies Training Aviation Center</p>
+            <ul>
+              <li>Trained to manage emergencies, including decompression, fire, and medical incidents, following strict safety protocols for passengers and crew</li>
+              <li>Completed foundational training in in-flight crew duties and responsibilities</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <h3>Safety of Life at Sea</h3>
+              <span class="timeline-date">September 2023 – October 2023</span>
+            </div>
+            <p class="timeline-company">EXACT Training Center</p>
+            <ul>
+              <li>Completed training in Elementary First Aid (EFA)</li>
+              <li>Trained in firefighting principles and fire prevention</li>
+              <li>Learned personal survival techniques, including proper use of life jackets</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <h3>TOEIC Certified</h3>
+              <span class="timeline-date">July 2025</span>
+            </div>
+            <p class="timeline-company">Treston International College</p>
+            <ul>
+              <li>Passed the Test of English for International Communication (TOEIC) with commendable performance, demonstrating strong English proficiency</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-alt" id="education">
+    <div class="container">
+      <p class="section-eyebrow">Education</p>
+      <h2 class="section-title">Academic Background</h2>
+      <div class="education-card">
+        <div class="timeline-header">
+          <h3>Bachelor of Science in Tourism Management</h3>
+          <span class="timeline-date">September 2022 – July 2025</span>
+        </div>
+        <p class="timeline-company">Treston International College — Major in Travel and Tourism</p>
+        <div class="chip-row">
+          <span class="chip">Academic Distinction</span>
+          <span class="chip">Tourism Representative, Student Council</span>
+          <span class="chip">Tourism Department School Representative</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="certifications">
+    <div class="container">
+      <p class="section-eyebrow">Certifications</p>
+      <h2 class="section-title">Credentials</h2>
+      <p class="section-subtitle">Click a certificate to view it in full size.</p>
+      <div class="cert-grid">
+        <button class="cert-card" data-full="images/cert-graduation.jpg" aria-label="View Certification of Graduation, full size">
+          <img src="images/cert-graduation.jpg" alt="Certification of Graduation — Bachelor of Science in Tourism Management, Treston International College">
+          <span class="cert-label">Certification of Graduation<br><small>Treston International College, 2025</small></span>
+        </button>
+        <button class="cert-card" data-full="images/cert-toeic.jpg" aria-label="View Certificate of Recognition, TOEIC Certified, full size">
+          <img src="images/cert-toeic.jpg" alt="Certificate of Recognition — TOEIC Certified, Treston International College">
+          <span class="cert-label">TOEIC Certified<br><small>Treston International College, 2025</small></span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-contact" id="contact">
+    <div class="container contact-inner">
+      <p class="section-eyebrow">Contact</p>
+      <h2 class="section-title">Let's Work Together</h2>
+      <p class="section-subtitle">Open to customer service, administrative, and automation support roles.</p>
+      <div class="contact-grid">
+        <a class="contact-card" href="mailto:whisneymorala08@gmail.com">
+          <span class="contact-label">Email</span>
+          <span class="contact-value">whisneymorala08@gmail.com</span>
+        </a>
+        <div class="contact-card">
+          <span class="contact-label">Location</span>
+          <span class="contact-value">Taguig City, Metro Manila, Philippines</span>
+        </div>
+      </div>
+      <a href="mailto:whisneymorala08@gmail.com" class="btn btn-accent contact-btn">Send Me an Email</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>&copy; <span id="year"></span> Whisney Morala. All rights reserved.</p>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose" aria-label="Close">&times;</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
