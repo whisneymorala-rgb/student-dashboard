@@ -126,8 +126,9 @@
     const { useState, useEffect, useRef, useMemo } = React;
 
     // Progress buckets read low -> high, so red -> green makes the distribution obvious at a glance.
-    const PROGRESS_RAMP_LIGHT = ['#d03b3b', '#eb6834', '#eda100', '#1baf7a', '#008300'];
-    const PROGRESS_RAMP_DARK = ['#e66767', '#d95926', '#c98500', '#199e70', '#008300'];
+    // Lightened tints of the base red/orange/amber/aqua/green scale, re-validated with the dataviz palette checker.
+    const PROGRESS_RAMP_LIGHT = ['#d96262', '#ef865d', '#eda100', '#49bf95', '#339c33'];
+    const PROGRESS_RAMP_DARK = ['#e66767', '#dd6a3c', '#c98500', '#30a87e', '#1a8f1a'];
     // Fixed-order categorical palette for email types.
     const CATEGORICAL = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
 
