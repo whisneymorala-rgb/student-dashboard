@@ -308,68 +308,42 @@ ul { margin: 0; padding: 0; list-style: none; }
   background: var(--teal);
 }
 
+/* ---------- Tools row ---------- */
+.tools-row {
+  margin-top: 56px;
+  text-align: center;
+}
+.tools-row h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin: 0 0 16px;
+}
+.chip-row-center { justify-content: center; }
+
 /* ---------- Projects ---------- */
 .project-card {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
-  align-items: start;
-  max-width: 1040px;
+  max-width: 780px;
   margin: 40px auto 0;
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 40px;
+  padding: 16px;
   box-shadow: var(--shadow);
 }
-.project-info h3 {
-  color: var(--navy);
-  font-size: 1.3rem;
-  margin: 0 0 14px;
-}
-.project-info p {
-  color: var(--text-muted);
-  font-size: 0.97rem;
-  margin: 0 0 18px;
-}
-.project-info ul {
-  margin-bottom: 22px;
-}
-.project-info ul li {
-  position: relative;
-  padding-left: 20px;
-  color: var(--text-muted);
-  font-size: 0.93rem;
-  margin-bottom: 10px;
-}
-.project-info ul li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 8px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--teal);
-}
-.project-media {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.project-media figure {
+.project-card figure {
   margin: 0;
-  border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
   background: var(--bg-alt);
 }
-.project-media img { width: 100%; }
-.project-media figcaption {
-  padding: 10px 14px;
-  font-size: 0.8rem;
+.project-card img { width: 100%; }
+.project-card figcaption {
+  padding: 14px 6px 4px;
+  font-size: 0.85rem;
   color: var(--text-muted);
-  border-top: 1px solid var(--border);
+  text-align: center;
 }
 
 /* ---------- Timeline ---------- */
@@ -583,7 +557,6 @@ a.contact-card:hover { background: rgba(255, 255, 255, 0.12); }
 
   .about-grid { grid-template-columns: 1fr; }
   .skills-grid { grid-template-columns: 1fr; }
-  .project-card { grid-template-columns: 1fr; padding: 28px; }
   .cert-grid { grid-template-columns: 1fr; }
   .contact-grid { grid-template-columns: 1fr; }
 

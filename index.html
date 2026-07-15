@@ -139,6 +139,15 @@
         </div>
 
       </div>
+
+      <div class="tools-row">
+        <h3>Tools &amp; Software</h3>
+        <div class="chip-row chip-row-center">
+          <span class="chip">Google Workspace</span>
+          <span class="chip">Airtable</span>
+          <span class="chip">Make.com</span>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -146,36 +155,11 @@
     <div class="container">
       <p class="section-eyebrow">Projects</p>
       <h2 class="section-title">Automation in Practice</h2>
-      <p class="section-subtitle">A real retention system I designed end-to-end using Airtable and Make.com.</p>
-
       <div class="project-card">
-        <div class="project-info">
-          <h3>Student Retention Dashboard &amp; Automation</h3>
-          <p>Built a complete retention workflow for tracking student course progress. Airtable holds the live student records; a scheduled Make.com automation scans those records every minute, branches by status (at-risk, inactive, active, completed), and sends the right follow-up email through Gmail — then logs the outcome back to the record. The same data powers a live reporting dashboard.</p>
-          <ul>
-            <li>Designed a multi-branch Make.com scenario that routes each student down a different automated email path based on their status</li>
-            <li>Combined HTTP, text parser, Gmail, and Airtable modules into one reliable, scheduled workflow</li>
-            <li>Structured the Airtable base — status, percent complete, engagement trend, testimonial replies, last activity — to serve both the automation and the dashboard</li>
-            <li>Built and deployed a lightweight, real-time web dashboard reading from the same base</li>
-          </ul>
-          <div class="chip-row">
-            <span class="chip">Airtable</span>
-            <span class="chip">Make.com</span>
-            <span class="chip">Gmail Integration</span>
-            <span class="chip">JavaScript</span>
-            <span class="chip">Vercel</span>
-          </div>
-        </div>
-        <div class="project-media">
-          <figure>
-            <img src="images/project-make-scenario.jpg" alt="Make.com automation scenario named Retention Scanner, showing a scheduled workflow that branches by student status through HTTP, text parser, Gmail, and Airtable modules">
-            <figcaption>Make.com scenario — "Retention Scanner"</figcaption>
-          </figure>
-          <figure>
-            <img src="images/project-airtable-base.jpg" alt="Airtable base tracking student status, percent complete, and enrollment data, with student names and emails redacted for privacy">
-            <figcaption>Airtable base — student records (names &amp; emails redacted for privacy)</figcaption>
-          </figure>
-        </div>
+        <figure>
+          <img src="images/project-make-scenario.jpg" alt="Make.com automation scenario named Retention Scanner, showing a scheduled workflow branching through HTTP, text parser, Gmail, and Airtable modules">
+          <figcaption>Make.com scenario — "Retention Scanner"</figcaption>
+        </figure>
       </div>
     </div>
   </section>
